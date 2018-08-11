@@ -71,4 +71,4 @@ Turns into
 ```
 
 ## Disclaimers
-I am in no way affliated with Paradox, nor do I have any knowledge on how they use these ```.txt``` files. Therefore I make no guarantees that this will correctly translate any given file, this has only been tested on a few files from Stellaris. 
+I am in no way affiliated with Paradox, nor do I have any knowledge on how they use these ```.txt``` files. Therefore I make no guarantees that this will correctly translate any given file, this has only been tested on a few files from Stellaris. 
