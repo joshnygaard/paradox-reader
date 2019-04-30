@@ -12,61 +12,60 @@ Given a file this script will use regular expression substitutions to translate 
 * Duplicate keys are turned into lists
 ```
 allow = {
-	is_country_type = default
-	OR = {
-		AND = {
-			has_ethic = "ethic_fanatic_militarist"
-			OR = {
-				has_ethic = "ethic_spiritualist"
-				has_ethic = "ethic_egalitarian"
-				has_ethic = "ethic_xenophile"
-			}
-		}
-		AND = {
-			has_ethic = "ethic_fanatic_xenophile"
-			has_ethic = "ethic_militarist"
-		}
-	}
+  is_country_type = default
+  OR = {
+    AND = {
+      has_ethic = "ethic_fanatic_militarist"
+      OR = {
+        has_ethic = "ethic_spiritualist"
+        has_ethic = "ethic_egalitarian"
+        has_ethic = "ethic_xenophile"
+      }
+    }
+    AND = {
+      has_ethic = "ethic_fanatic_xenophile"
+      has_ethic = "ethic_militarist"
+    }
+  }
 }
 ```
 Turns into:
 ```json
 "allow": {
-	"is_country_type": "default",
-		"OR": {
-			"AND": [
-				{
-					"has_ethic": "ethic_fanatic_militarist",
-					"OR": {
-						"has_ethic": [
-							"ethic_spiritualist",
-							"ethic_egalitarian",
-							"ethic_xenophile"
-						]
-					}
-				},
-				{
-					"has_ethic": [
-						"ethic_fanatic_xenophile",
-						"ethic_militarist"
-					]
-				}
-			]
-		}
-	}
+  "is_country_type": "default",
+  "OR": {
+    "AND": [
+      {
+        "has_ethic": "ethic_fanatic_militarist",
+        "OR": {
+          "has_ethic": [
+            "ethic_spiritualist",
+            "ethic_egalitarian",
+            "ethic_xenophile"
+          ]
+        }
+      },
+      {
+        "has_ethic": [
+          "ethic_fanatic_xenophile",
+          "ethic_militarist"
+        ]
+      }
+    ]
+  }
 }
 ```
 * Greater than and less than comparisions get turned into objects:
 ```
 happened = {
-	num_owned_planets > 1
+  num_owned_planets > 1
 }
 ```
 Turns into
 ```json
 "num_owned_planets": {
-	"value": 1,
-	"operand": ">"
+  "value": 1,
+  "operand": ">"
 }
 ```
 
