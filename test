@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for file in ./input/*
+do
+  pipenv run python paradoxReader.py "$file"
+done
