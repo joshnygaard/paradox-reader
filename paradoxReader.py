@@ -28,7 +28,8 @@ def decode(file_path, save_intermediate, no_json):
     except FileNotFoundError:
         print('ERROR: Unable to find file: ' + file_path)
         sys.exit()
-
+    
+    data = file.read()
     data = re.sub(r'#.*', '', data) # Remove comments
     data = re.sub(r'([\w\d_])[\t\ ]+([_\w\d])', r'\1\n\2', data) # add newline between key = value key = value
     data = re.sub(r'[\t ]', '', data) # Remove tabs and spaces
