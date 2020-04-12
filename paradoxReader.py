@@ -29,20 +29,21 @@ def decode(file_path, save_intermediate, no_json):
         print('ERROR: Unable to find file: ' + file_path)
         sys.exit()
 
-    data = file.read()
     data = re.sub(r'#.*', '', data) # Remove comments
+    data = re.sub(r'([\w\d_])[\t\ ]+([_\w\d])', r'\1\n\2', data) # add newline between key = value key = value
     data = re.sub(r'[\t ]', '', data) # Remove tabs and spaces
     data = re.sub(r'\n{2,}', '\n', data) # Remove excessive new lines
     data = re.sub(r'\n', '', data, count=1)  # Remove the first new line
     data = re.sub(r'{(?=\w)', '{\n', data) # reformat one-liners
     data = re.sub(r'(?<=\w)}', '\n}', data) # reformat one-liners
     data = re.sub(r'^([\w-]+)', r'"\g<1>"', data, flags=re.MULTILINE)  # Add quotes around keys
-    data = re.sub(r'=', ':', data)  # Replace = with :
-    data = re.sub(r'(?<=:)\w*[a-zA-Z_]+\w*', r'"\g<0>"', data)  # Add quotes around string values
+    data = re.sub(r'([^><])=', r'\1:', data)  # Replace = with : but not >= or <=
+    data = re.sub(r'(?<=:)@?\w*[a-zA-Z_]+\w*', r'"\g<0>"', data)  # Add quotes around string values or @variables
     data = re.sub(r':"yes"', ':true', data) # Replace yes with true
     data = re.sub(r':"no"', ':false', data)  # Replace no with false
-    data = re.sub(r'([<>])(.+)', r':{"value":\g<2>,"operand":"\g<1>"}', data) # Handle < >
+    data = re.sub(r'([<>]=?)(.+)', r':{"value":\g<2>,"operand":"\g<1>"}', data) # Handle < > >= <=
     data = re.sub(r'(?<![:{])\n(?!}|$)', ',', data)  # Add commas
+    data = re.sub(r':{([^}{:]*)}', r':[\1]', data)  # if there's no : between list elements need to replace {} with []
     data = '{' + data + '}'
 
     file_name = os.path.basename(file_path)
