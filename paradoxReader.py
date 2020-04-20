@@ -1,17 +1,29 @@
 import argparse
 import json
-import os
+from os import listdir
+from os.path import isfile, join, isdir, basename
 import re
 import sys
 import time
-
+from tqdm import tqdm
 
 def main():
     start_time = time.time()
     args = _get_args()
 
-    decode(args.file_name, args.intermediate, args.no_json)
-    print("--- %s seconds ---" % (time.time() - start_time))
+    if isdir(args.file_name):
+        successful = 0
+        files = [f for f in listdir(args.file_name) if isfile(join(args.file_name, f)) and str.endswith(f, '.txt')]
+        for file_name in tqdm(files):
+            result = decode(join(args.file_name, file_name), args.intermediate, args.no_json)
+            if result is not None:
+                successful += 1
+
+        print("{} out of {} succesful".format(successful, len(files)))
+
+    else:
+        decode(args.file_name, args.intermediate, args.no_json)
+        print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def _get_args():
@@ -28,9 +40,9 @@ def decode(file_path, save_intermediate, no_json):
         file = open(file_path, 'r')
     except FileNotFoundError:
         print('ERROR: Unable to find file: ' + file_path)
-        sys.exit()
+        return None
 
-    file_name = os.path.basename(file_path)
+    file_name = basename(file_path)
 
     data = file.read()
     data = re.sub(r'#.*', '', data) # Remove comments
@@ -48,19 +60,22 @@ def decode(file_path, save_intermediate, no_json):
     data = re.sub(r'{(?=\w)', '{\n', data) # reformat one-liners
     data = re.sub(r'(?<=\w)}', '\n}', data) # reformat one-liners
     data = re.sub(r'^([\w-]+)', r'"\g<1>"', data, flags=re.MULTILINE)  # Add quotes around keys
-    data = re.sub(r'=', ':', data)  # Replace = with :
-    data = re.sub(r'(?<=:)((?![-+]?(\d+(\.\d*)?|\.\d+))\w+[_\.]?\w*)', r'"\g<0>"', data)  # Add quotes around string values
+    data = re.sub(r'([^><])=', r'\1:', data)  # Replace = with : but not >= or <=
+    with open('./' + file_name + '.json', 'w') as file:
+        json.dump(data, file, indent=2)
+    data = re.sub(r'(?<=:)@?\w*[a-zA-Z_]+\w*', r'"\g<0>"', data)  # Add quotes around string values or @variables
     data = re.sub(r':"yes"', ':true', data) # Replace yes with true
     data = re.sub(r':"no"', ':false', data)  # Replace no with false
-    data = re.sub(r'([<>])(.+)', r':{"value":\g<2>,"operand":"\g<1>"}', data) # Handle < >
+    data = re.sub(r'([<>]=?)(.+)', r':{"value":\g<2>,"operand":"\g<1>"}', data) # Handle < > >= <=
     data = re.sub(r'(?<![:{])\n(?!}|$)', ',', data)  # Add commas
     data = re.sub(r'\s', '', data) # remove all white space
     data = re.sub(r'{(("[a-zA-Z_]+")+)}', r'[\g<1>]', data) # make lists
     data = re.sub(r'""', r'","', data) # Add commas to lists
     data = re.sub(r'{("\w+"(,"\w+")*)}', r'[\g<1>]', data)
+    data = re.sub(r':{([^}{:]*)}', r':[\1]', data)  # if there's no : between list elements need to replace {} with []
     data = '{' + data + '}'
 
-    file_name = os.path.basename(file_path)
+    file_name = basename(file_path)
 
     if save_intermediate:
         with open('./output/' + file_name + '.intermediate', 'w') as output:
@@ -69,13 +84,13 @@ def decode(file_path, save_intermediate, no_json):
     try:
         json_data = json.loads(data, object_pairs_hook=_handle_duplicates)
     except json.decoder.JSONDecodeError:
-        print('ERROR: Unable to parse {}'.format(file_name))
-        print('Dumping intermediate code into file: {}_{:.0f}.intermediate'.format(file_name, time.time()))
+        # print('ERROR: Unable to parse {}'.format(file_name))
+        # print('Dumping intermediate code into file: {}_{:.0f}.intermediate'.format(file_name, time.time()))
 
         with open('./output/{}_{:.0f}.intermediate'.format(file_name, time.time()), 'w') as output:
             output.write(data)
 
-        sys.exit()
+        return None
 
     with open('./output/' + file_name + '.json', 'w') as file:
         json.dump(json_data, file, indent=2)
