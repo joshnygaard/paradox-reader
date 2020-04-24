@@ -46,9 +46,10 @@ def decode(file_path, save_intermediate, no_json):
 
     data = file.read()
     data = re.sub(r'#.*', '', data) # Remove comments
+    data = re.sub(r'(?<=^[^\"\n])*(?<=[0-9\.\-a-zA-Z])+(\s)(?=[0-9\.\-a-zA-Z])+(?=[^\"\n]*$)', '\n', data, flags=re.MULTILINE) # Seperate one line lists
     data = re.sub(r'[\t ]', '', data) # Remove tabs and spaces
 
-    definitions = re.findall(r'(@\w+)=(.+)', data)
+    definitions = re.findall(r'(@\w+)=(.+)', data) # replace @variables with value
 
     if definitions:
         for definition in definitions:
@@ -59,11 +60,9 @@ def decode(file_path, save_intermediate, no_json):
     data = re.sub(r'\n', '', data, count=1)  # Remove the first new line
     data = re.sub(r'{(?=\w)', '{\n', data) # reformat one-liners
     data = re.sub(r'(?<=\w)}', '\n}', data) # reformat one-liners
-    data = re.sub(r'^([\w-]+)', r'"\g<1>"', data, flags=re.MULTILINE)  # Add quotes around keys
+    data = re.sub(r'^[\w-]+(?=[\=\n><])', r'"\g<0>"', data, flags=re.MULTILINE)  # Add quotes around keys
     data = re.sub(r'([^><])=', r'\1:', data)  # Replace = with : but not >= or <=
-    with open('./' + file_name + '.json', 'w') as file:
-        json.dump(data, file, indent=2)
-    data = re.sub(r'(?<=:)@?\w*[a-zA-Z_]+\w*', r'"\g<0>"', data)  # Add quotes around string values or @variables
+    data = re.sub(r'(?<=:)(?!-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)(?!\".*\")[^{\n]+', r'"\g<0>"', data)  # Add quotes around string values
     data = re.sub(r':"yes"', ':true', data) # Replace yes with true
     data = re.sub(r':"no"', ':false', data)  # Replace no with false
     data = re.sub(r'([<>]=?)(.+)', r':{"value":\g<2>,"operand":"\g<1>"}', data) # Handle < > >= <=
@@ -72,7 +71,10 @@ def decode(file_path, save_intermediate, no_json):
     data = re.sub(r'{(("[a-zA-Z_]+")+)}', r'[\g<1>]', data) # make lists
     data = re.sub(r'""', r'","', data) # Add commas to lists
     data = re.sub(r'{("\w+"(,"\w+")*)}', r'[\g<1>]', data)
-    data = re.sub(r':{([^}{:]*)}', r':[\1]', data)  # if there's no : between list elements need to replace {} with []
+    data = re.sub(r'((\"hsv\")({\d\.\d{1,3}(,\d\.\d{1,3}){2}})),', r'{\g<2>:\g<3>},', data) # fix hsv objects
+    data = re.sub(r':{([^}{:]*)}', r':[\1]', data) # if there's no : between list elements need to replace {} with []
+    data = re.sub(r'\[(\w+)\]', r'"\g<1>"', data)
+    data = re.sub(r'\",:{', '":{', data) # Fix user_empire_designs
     data = '{' + data + '}'
 
     file_name = basename(file_path)
